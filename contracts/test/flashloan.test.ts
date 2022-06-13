@@ -28,8 +28,8 @@ describe("Flashloan", function () {
     await flashloanContract.deployed();
     console.log("Flashloan Contract address ; ", flashloanContract.address);
 
-    const _borrower = "0x31c4d313b237a7e78ff610173f56fc5cd1d6aab6";
-    const _repayAmount = parseUnits("500", 6);
+    const _borrower = "0xa09eac301ddc6d6be982c11bb79e3e98642b3964";
+    const _repayAmount = parseUnits("60797537", 6).div(2);
     const _cTokenRepay = "0xf650c3d88d12db855b8bf7d11be6c55a4e07dcc9"; // cUSDT;
     const _cTokenCollateral = "0xccf4429db6322d5c611ee964527d42e5d685dd6a"; // cWBTC;
 

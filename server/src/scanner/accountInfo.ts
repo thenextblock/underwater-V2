@@ -4,7 +4,7 @@ import { utils, ethers, BigNumber } from "ethers";
 import { formatUnits, parseUnits } from "ethers/lib/utils";
 import { Comptroller__factory } from "./types";
 import { AccountInfo__factory } from "./typechain";
-import { getMarketEnteredAccountData } from "./db";
+import { dbSaveAccountSnapshotByBlockNumber, getMarketEnteredAccountData } from "./db";
 
 import Queue from "bull";
 const ACCOUNT_INFO_QUEUE = new Queue("account_info");
@@ -42,13 +42,23 @@ export async function startScanner(blockNumber: number) {
   });
 }
 
+// 100 , 200
 ///////// QUEUE //////////
-ACCOUNT_INFO_QUEUE.process(400, async (job, done) => {
+ACCOUNT_INFO_QUEUE.process(450, async (job, done) => {
   const { account, blockNumber } = job.data;
-  //   console.log(account, " | ", blockNumber);
-  const { collateral, borrows } = await accountInfoContract.getLiquidity(account);
-  console.log(collateral, borrows);
-  console.log("-----------------------------------");
+  try {
+    const { collateral, borrows } = await accountInfoContract.getLiquidity(account);
+    await dbSaveAccountSnapshotByBlockNumber(blockNumber, account, collateral.toString(), borrows.toString());
+  } catch (error: any) {
+    console.log("Error : ", account);
+  }
+  // if (borrows.gt(collateral)) {
+  //   if (!collateral.isZero()) {
+  //     console.log(account, collateral.div(borrows).mul(100).toString(), "%"),
+  //       console.log(collateral.toString(), borrows.toString(), borrows.gt(collateral));
+  //     console.log("-----------------------------------");
+  //   }
+  // }
   done(null);
 });
 
@@ -66,6 +76,7 @@ ACCOUNT_INFO_QUEUE.on("failed", async (job, error) => {
  */
 async function queeMonitor() {
   let counter = 0;
+  const start = new Date().getTime();
   setInterval(function () {
     ACCOUNT_INFO_QUEUE.getJobCounts()
       .then(function (result) {
@@ -74,9 +85,11 @@ async function queeMonitor() {
         counter++;
 
         console.log("----------");
-        if (result.active === 0 && counter > 10) {
+        if (result.active === 0 && counter > 2) {
           console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
-          ACCOUNT_INFO_QUEUE.empty();
+          const elapsed = new Date().getTime() - start;
+          console.log(`--> Get Pairs Time:  ${elapsed / 1000}s`);
+          // ACCOUNT_INFO_QUEUE.empty();
           return true;
         }
       })

@@ -12,10 +12,10 @@ const KEEPALIVE_QUEUE = new Queue("keepalive_accounts");
   console.log("START FETCH BORROWD ACCOUNTS FROM COMPOUND (Scheduler)  ...");
   //   await KEEPALIVE_QUEUE.empty();
   //   await ACCOUNTS_QUEUE.empty();
-  //   await startAddingBorroedwdAccounts();
+  await startAddingBorroedwdAccounts();
 
   // At every minute. https://crontab.guru/#*/1_*_*_*_*
-  KEEPALIVE_QUEUE.add({ name: "IM A KEEP ALIVE !!! " }, { repeat: { cron: "*/30 * * * *" } });
+  // KEEPALIVE_QUEUE.add({ name: "IM A KEEP ALIVE !!! " }, { repeat: { cron: "*/30 * * * *" } });
 })();
 
 KEEPALIVE_QUEUE.process(async job => {

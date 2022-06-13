@@ -78,7 +78,7 @@ const startListener = async () => {
     console.log("Price Updated %s", new Date());
     console.log("SymbolHash: ", symbolHash, " | ", anchorPrice);
 
-    console.log("Extra : ", extra);
+    console.log("Extra: ", extra);
 
     if (BLOCK_NUMBER === (await provider.getBlockNumber())) {
       console.log("IN THIS BLOCK WE ALREADY HAVE AN ONE EVENT !!! ");
@@ -105,7 +105,7 @@ const provider = new ethers.providers.WebSocketProvider(RPC_WS);
   const oracleInstance = new ethers.Contract(oracleAddress, newOracleAbi, provider);
 
   oracleInstance.on("PriceUpdated", async (symbolHash, anchorPrice, extraData) => {
-    console.log("------------------------------------------------");
+    console.log("----------------------------------------");
     console.log("PriceUpdated %s", new Date());
     console.log(symbolHash, " | ", formatUnits(anchorPrice));
     // console.log("ExtraData : ", extraData);

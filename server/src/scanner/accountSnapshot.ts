@@ -168,7 +168,7 @@ export async function startScanner(blockNumber: number) {
 }
 
 ///////// QUEUE //////////
-COMPOUND_QUEUE.process(200, async (job, done) => {
+COMPOUND_QUEUE.process(400, async (job, done) => {
   const { account, blockNumber } = job.data;
   console.log(account, " | ", blockNumber);
   const status = await readAndStoreAccountSnapshot(account, blockNumber);
@@ -246,15 +246,15 @@ async function queeMonitor() {
         counter++;
 
         console.log("----------");
-        if (result.active === 0 && counter > 10) {
+        if (result.active === 0 && counter > 2) {
           console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
           COMPOUND_QUEUE.empty();
           COMPOUND_PRICES_QUEUE.empty();
-          return true;
+          process.exit(1);
         }
       })
       .catch(function () {
         console.log("Error in finding out the status of the queue");
       });
-  }, 5000);
+  }, 2000);
 }

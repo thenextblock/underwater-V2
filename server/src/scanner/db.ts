@@ -3,6 +3,25 @@ import config from "../config";
 
 const pool = new Pool(config.db);
 
+// insert into accounts_info (blockNumber, collateral, borrows) values ($1,$2,$3);
+
+export const dbSaveAccountSnapshotByBlockNumber = async (
+  blockNumber: number,
+  account: string,
+  collateral: any,
+  borrows: any
+) => {
+  const sql = `
+        insert into accounts_info (blockNumber,account,  collateral, borrows) values ($1,$2,$3, $4);  
+  `;
+  const data = [blockNumber, account, collateral, borrows];
+  try {
+    await pool.query(sql, data);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 /**
  * Store MarketEndtered Account into database
  * @param Accont Address
@@ -21,8 +40,24 @@ export const storeMarketEnteredAccont = async (accountAddress: string) => {
 };
 
 export const getMarketEnteredAccountData = async () => {
-  const sql = `SELECT * FROM accounts;`; // TODO REMOVE LIMIT
-  // const sql = `select * from accounts order by dt_added desc limit 2;`;
+  // const sql = `SELECT * FROM accounts;`;
+  const sql = ` 
+            WITH A AS (
+                select max(blocknumber) as maxBlockNumber from accounts_info
+            ), B AS (
+                SELECT
+                      blocknumber,
+                      account,
+                      collateral/ pow(10,18) as collateral,
+                      borrows/ pow(10,18) as borrows,
+                        (collateral/borrows) AS health
+                  FROM accounts_info
+                            WHERE collateral > 0 AND borrows > 0
+                                AND blocknumber = (select maxBlockNumber from A)
+            )
+            SELECT * FROM B  WHERE health between 0.9 and 1  ORDER BY  collateral desc ;
+    `;
+
   try {
     return (await pool.query(sql, [])).rows;
   } catch (err) {

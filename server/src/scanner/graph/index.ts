@@ -9,7 +9,8 @@ import axios from "axios";
 
 export async function queryAccounts(pageSize: number, lastId: string): Promise<any> {
   return axios({
-    url: "https://api.thegraph.com/subgraphs/name/juanmardefago/compound-v2",
+    // url: "https://api.thegraph.com/subgraphs/name/juanmardefago/compound-v2",
+    url: "https://api.thegraph.com/subgraphs/name/nmimran99/compound-v2",
     method: "post",
     data: {
       query: ` {

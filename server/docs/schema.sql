@@ -50,6 +50,19 @@ alter table account_snapshot
     owner to postgres;
 
 
+DROP TABLE IF EXISTS  accounts_info;
+create table accounts_info (
+    id bigserial,
+    blockNumber numeric,
+    account varchar(42),
+    collateral numeric,
+    borrows numeric
+)
+
+alter table accounts_info
+    owner to postgres;
+
+
 --- *** --- 
 
 create function get_account_balance(

@@ -33,8 +33,9 @@ export async function getMarketEnteredAccounts() {
 
   let events = await comptroller.queryFilter(
     eventFilter,
-    startBlock + paging * page,
-    startBlock + paging * page + paging
+    startBlock + 6000000
+    // startBlock + paging * page,
+    // startBlock + paging * page + paging
   );
 
   let accounts: any = [];
@@ -42,6 +43,8 @@ export async function getMarketEnteredAccounts() {
 
   events.map(event => {
     let { cToken, account } = event.args;
+    console.log(event.args);
+    console.log("--------------------------");
     ACCOUNT_QUEUE.add({ id: account, blockNumber: event.blockNumber });
   });
 
@@ -58,7 +61,7 @@ export async function getMarketEnteredAccounts() {
 ACCOUNT_QUEUE.process(100, async (job, done) => {
   const { id, blockNumber } = job.data;
   console.log(id, blockNumber);
-  await storeMarketEnteredAccont(id, blockNumber);
+  // await storeMarketEnteredAccont(id, blockNumber);
   // const status = await readAndStoreAccountSnapshot(id);
   done(null, job);
 });
