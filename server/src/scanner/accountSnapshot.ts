@@ -15,6 +15,7 @@ import { getMarketEnteredAccountData, storeAccountSnapshot, storeMarket } from "
 import { underlyingTokens } from "./MarketStore";
 
 import Queue from "bull";
+import { getBorrowdAccountsFromGraph } from ".";
 const COMPOUND_QUEUE = new Queue("compound");
 const COMPOUND_PRICES_QUEUE = new Queue("price");
 const RPC_HOST = process.env.RPC_HTTP;
@@ -48,13 +49,14 @@ let _markets: IMarkets = {};
 let marketMap = new Map<string, Imarket>();
 
 (async () => {
-  console.log("COMPOUND SCANNER ...");
+  console.log("START COMPOUND SCANNER ...");
   COMPOUND_QUEUE.empty();
   COMPOUND_PRICES_QUEUE.empty();
   await startCompoundScanner();
 })();
 
 export async function startCompoundScanner(): Promise<Number> {
+  console.log("get Block Number ???? ");
   const blockNumber = await provider.getBlockNumber();
   console.log("BlockNumber : ", blockNumber);
   console.log("#1 ---- GET MARKET DATA ---");
@@ -160,11 +162,20 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number)
  * Scanner
  */
 export async function startScanner(blockNumber: number) {
-  const rows = await getMarketEnteredAccountData();
-  console.log("Rows : ", rows?.length);
-  rows?.map((row, key) => {
-    COMPOUND_QUEUE.add({ account: row.account, blockNumber: blockNumber });
+  // const rows = await getMarketEnteredAccountData();
+
+  const _accounts = await getBorrowdAccountsFromGraph();
+
+  _accounts.map(item => {
+    console.log(item.id);
+    COMPOUND_QUEUE.add({ account: item.id, blockNumber: blockNumber });
   });
+
+  // temporary commented !!!
+  // console.log("Rows : ", rows?.length);
+  // rows?.map((row, key) => {
+  //   COMPOUND_QUEUE.add({ account: row.account, blockNumber: blockNumber });
+  // });
 }
 
 ///////// QUEUE //////////
