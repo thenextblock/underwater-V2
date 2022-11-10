@@ -5,9 +5,8 @@ DROP TABLE account_snapshot;
 CREATE TABLE accounts
 (
     account varchar(43),
-    dt_added date,
-    account varchar primary key,
-    unique (account)
+    blockNumber bigint
+    -- unique (account)
 );
 
 alter table accounts owner to postgres;

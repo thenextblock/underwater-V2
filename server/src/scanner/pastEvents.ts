@@ -20,6 +20,7 @@ const provider = new ethers.providers.JsonRpcProvider(RPC_HOST);
   console.log("RPC : ", RPC_HOST);
   console.log("Comptorller : ", COMPTORLLER_ADDRESS);
   await getMarketEnteredAccounts();
+  await queeMonitor();
 })();
 
 export async function getMarketEnteredAccounts() {
@@ -29,13 +30,15 @@ export async function getMarketEnteredAccounts() {
 
   let startBlock = 7710671;
   let paging = 500000;
-  let page = 0;
+  let page = 1;
+
+  // 6000000
 
   let events = await comptroller.queryFilter(
     eventFilter,
-    startBlock + 6000000
-    // startBlock + paging * page,
-    // startBlock + paging * page + paging
+    // startBlock + 6000000
+    startBlock + paging * page,
+    startBlock + paging * page + paging
   );
 
   let accounts: any = [];
@@ -43,25 +46,17 @@ export async function getMarketEnteredAccounts() {
 
   events.map(event => {
     let { cToken, account } = event.args;
-    console.log(event.args);
-    console.log("--------------------------");
     ACCOUNT_QUEUE.add({ id: account, blockNumber: event.blockNumber });
   });
 
-  // events.map(event => {
-  //   let { cToken, account } = event.args;
-  //   accounts.push(account);
-  // });
-
-  // let _accounts: string[] = _.uniq(accounts);
-  // console.log("Unique Accounts : ", _accounts.length);
-  // return _accounts;
+  let _accounts: string[] = _.uniq(accounts);
+  console.log("Unique Accounts : ", _accounts.length);
 }
 
 ACCOUNT_QUEUE.process(100, async (job, done) => {
   const { id, blockNumber } = job.data;
-  console.log(id, blockNumber);
-  // await storeMarketEnteredAccont(id, blockNumber);
+  // console.log(id, blockNumber);
+  await storeMarketEnteredAccont(id, blockNumber);
   // const status = await readAndStoreAccountSnapshot(id);
   done(null, job);
 });
@@ -72,3 +67,26 @@ ACCOUNT_QUEUE.on("completed", async (job, result) => {
   }
   job.remove();
 });
+
+async function queeMonitor() {
+  let counter = 0;
+  const start = new Date().getTime();
+  setInterval(function () {
+    ACCOUNT_QUEUE.getJobCounts()
+      .then(function (result) {
+        console.log("\r" + "Queue status: ", result);
+        console.log("\r" + "Counter: ", counter, "Running Time : ", (counter * 10) / 60, "Minutes");
+        counter++;
+
+        console.log("----------");
+        if (result.active === 0 && counter > 2) {
+          console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
+          const elapsed = new Date().getTime() - start;
+          console.log(`--> Get Pairs Time:  ${elapsed / 1000}s`);
+        }
+      })
+      .catch(function () {
+        console.log("Error in finding out the status of the queue");
+      });
+  }, 5000);
+}

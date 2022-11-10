@@ -19,12 +19,12 @@ describe("Flashloan", function () {
     const [deployer, userA, userB, userC] = await ethers.getSigners();
 
     console.log("Block Number : ", await ethers.provider.getBlockNumber());
-
     console.log("Deployer : ", deployer.address);
 
     const flashloanContract = await new MyV2FlashLoan__factory(deployer).deploy(
       lendingPoolAddressProvider
     );
+
     await flashloanContract.deployed();
     console.log("Flashloan Contract address ; ", flashloanContract.address);
 

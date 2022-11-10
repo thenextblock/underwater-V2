@@ -26,12 +26,12 @@ export const dbSaveAccountSnapshotByBlockNumber = async (
  * Store MarketEndtered Account into database
  * @param Accont Address
  */
-export const storeMarketEnteredAccont = async (accountAddress: string) => {
+export const storeMarketEnteredAccont = async (accountAddress: string, blockNumber: number) => {
   const sql = `
-        insert into accounts ("account", dt_added) values ($1, now())
-            ON CONFLICT (account) DO NOTHING;  
+        insert into accounts ("account", blockNumber) values ($1,$2);
+            -- ON CONFLICT (account) DO NOTHING;  
   `;
-  const data = [accountAddress];
+  const data = [accountAddress, blockNumber];
   try {
     await pool.query(sql, data);
   } catch (err) {

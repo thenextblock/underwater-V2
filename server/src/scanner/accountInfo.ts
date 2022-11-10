@@ -1,23 +1,19 @@
-console.log(" ... ACCOUNT INFO !!! .... ");
+console.log(" ... ACCOUNT HEALTH INFO !!! .... ");
 require("dotenv").config();
 import { utils, ethers, BigNumber } from "ethers";
-import { formatUnits, parseUnits } from "ethers/lib/utils";
-import { Comptroller__factory } from "./types";
 import { AccountInfo__factory } from "./typechain";
 import { dbSaveAccountSnapshotByBlockNumber, getMarketEnteredAccountData } from "./db";
-
 import Queue from "bull";
+
 const ACCOUNT_INFO_QUEUE = new Queue("account_info");
 const RPC_HOST = process.env.RPC_HTTP;
 const provider = new ethers.providers.JsonRpcProvider(RPC_HOST);
-// const COMPTORLLER_ADDRESS = process.env.COMPTORLLER_ADDRESS || "";
-// const comptroller = Comptroller__factory.connect(COMPTORLLER_ADDRESS, provider);
 const ACCOUNT_INFO_ADDRESS = "0x71BdD2FF5f6aaC9bae395aec148762349A44b6D5";
 
 const accountInfoContract = AccountInfo__factory.connect(ACCOUNT_INFO_ADDRESS, provider);
 
 (async () => {
-  console.log("START ACCOUNT INFO  SCANNER ...");
+  console.log("START ACCOUNT INFO SCANNER ...");
   ACCOUNT_INFO_QUEUE.empty();
   await startCompoundScanner();
 })();

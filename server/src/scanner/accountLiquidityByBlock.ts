@@ -12,10 +12,10 @@ const COMPTORLLER_ADDRESS = "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b";
 const comptroller = Comptroller__factory.connect(COMPTORLLER_ADDRESS, provider);
 
 async function main() {
-  const startBlock = 13738049 - 10;
-  const endBlock = 13738049 + 10;
+  const startBlock = 14955093 - 10;
+  const endBlock = 14955093 + 10;
 
-  const borrower = "0x0aff497bd016000185b1c8302fa98a88ff4a4178";
+  const borrower = "0xca54c3123c855bceceb0db69B034E45530020F26";
 
   for (let i = startBlock; i < endBlock; i++) {
     let accountLiquidity = await comptroller.getAccountLiquidity(borrower, {
@@ -28,6 +28,8 @@ async function main() {
       `BlockNumber: ${i} - error: ${error.toString()} | liquidity: ${liquidity.toString()},  shortfall: ${shortfall.toString()}`
     );
   }
+
+  console.log("Finished !!! ");
 }
 
 main().catch(error => {

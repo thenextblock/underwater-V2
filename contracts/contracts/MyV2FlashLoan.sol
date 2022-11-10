@@ -23,9 +23,12 @@ contract MyV2FlashLoan is FlashLoanReceiverBase {
     IUniswapV2Router02 public uniswapRouter;
     IUniswapV2Factory public factory;
 
-    address internal constant UNISWAP_ROUTER_ADDRESS = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
-    address internal constant CETH_ADDRESS = 0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5;
-    address internal constant ETH_RESERVE_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    address internal constant UNISWAP_ROUTER_ADDRESS =
+        0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address internal constant CETH_ADDRESS =
+        0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5;
+    address internal constant ETH_RESERVE_ADDRESS =
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     struct LocalVars {
         address _borrower;
@@ -49,13 +52,14 @@ contract MyV2FlashLoan is FlashLoanReceiverBase {
         address path0;
         address path1;
         address path2;
-
         uint256 amountReceived;
         uint256 amountOwing;
     }
 
-    constructor(ILendingPoolAddressesProvider _addressProvider) public
-        FlashLoanReceiverBase(_addressProvider) {
+    constructor(ILendingPoolAddressesProvider _addressProvider)
+        public
+        FlashLoanReceiverBase(_addressProvider)
+    {
         uniswapRouter = IUniswapV2Router02(UNISWAP_ROUTER_ADDRESS);
         factory = IUniswapV2Factory(uniswapRouter.factory());
     }
@@ -70,7 +74,6 @@ contract MyV2FlashLoan is FlashLoanReceiverBase {
         address initiator,
         bytes calldata params
     ) external override returns (bool) {
-        
         console.log(">>>> The Debt received");
         console.log(">>> This Balance", address(this).balance);
 
@@ -78,79 +81,97 @@ contract MyV2FlashLoan is FlashLoanReceiverBase {
 
         // LocalVars memory vars;
         console.log("SM-> Loans received");
-        console.log("SM-> assets %s" , assets[0]);
-        console.log("SM-> amounts %s" , amounts[0]);
-        console.log("SM-> premiums %s" , premiums[0]);
+        console.log("SM-> assets %s", assets[0]);
+        console.log("SM-> amounts %s", amounts[0]);
+        console.log("SM-> premiums %s", premiums[0]);
 
-        console.log("SM-> Borrowd(flashloan) Balance %s", IERC20(assets[0]).balanceOf(address(this)));
+        console.log(
+            "SM-> Borrowd(flashloan) Balance %s",
+            IERC20(assets[0]).balanceOf(address(this))
+        );
 
         (
             vars._borrower,
             vars._repayAmount,
             vars._cTokenRepay,
             vars._cTokenCollateral
-
         ) = abi.decode(params, (address, uint256, address, address));
 
         console.log("SM -> vars._borrower %s", vars._borrower);
         console.log("SM -> vars._repayAmount %s", vars._repayAmount);
         console.log("SM -> vars._cTokenRepay %s", vars._cTokenRepay);
-        console.log("SM -> vars._cTokenCollateral %s", vars._cTokenCollateral);    
+        console.log("SM -> vars._cTokenCollateral %s", vars._cTokenCollateral);
 
         IERC20(assets[0]).safeApprove(vars._cTokenRepay, vars._repayAmount);
-        
-        vars.liquidateBorrowError = CErc20Interface(vars._cTokenRepay).liquidateBorrow
-            (
+
+        vars.liquidateBorrowError = CErc20Interface(vars._cTokenRepay)
+            .liquidateBorrow(
                 vars._borrower,
                 vars._repayAmount,
                 CTokenInterface(vars._cTokenCollateral)
             );
 
-        console.log("SM -> liquidateBorrowError %s ", vars.liquidateBorrowError);
+        console.log(
+            "SM -> liquidateBorrowError %s ",
+            vars.liquidateBorrowError
+        );
 
-        vars.seizedTokens = IERC20(vars._cTokenCollateral).balanceOf(address(this));
+        vars.seizedTokens = IERC20(vars._cTokenCollateral).balanceOf(
+            address(this)
+        );
         console.log("SM -> this seizedTokenBalance %s", vars.seizedTokens);
 
-        vars.redeemErrorCode = CErc20Interface(vars._cTokenCollateral).redeem(vars.seizedTokens);
+        vars.redeemErrorCode = CErc20Interface(vars._cTokenCollateral).redeem(
+            vars.seizedTokens
+        );
         console.log("SM ->redeemError %s", vars.redeemErrorCode);
 
-        address siezedTokenUnderlying = CErc20Storage(address(vars._cTokenCollateral)).underlying();
+        address siezedTokenUnderlying = CErc20Storage(
+            address(vars._cTokenCollateral)
+        ).underlying();
         console.log("SM -> siezedTokenUnderlying %s", siezedTokenUnderlying);
 
-        vars.underlyingBalance = IERC20(siezedTokenUnderlying).balanceOf(address(this));
+        vars.underlyingBalance = IERC20(siezedTokenUnderlying).balanceOf(
+            address(this)
+        );
         console.log("SM -> underlyingTokenBalance %s", vars.underlyingBalance);
 
         ////////////////////////////////////////////////////////
         ////////////////// UNISWAP  OPERATIONS /////////////////
         ////////////////////////////////////////////////////////
-            
+
         address[] memory path = new address[](2);
         path[0] = siezedTokenUnderlying;
         path[1] = assets[0];
 
-        // Approve For Uniswap Rowter 
-        IERC20(siezedTokenUnderlying).safeApprove(address(uniswapRouter), vars.underlyingBalance);
+        // Approve For Uniswap Rowter
+        IERC20(siezedTokenUnderlying).safeApprove(
+            address(uniswapRouter),
+            vars.underlyingBalance
+        );
 
         vars.amountReceived = uniswapRouter.swapExactTokensForTokens(
-          vars.underlyingBalance, 
-          0, 
-          path, 
-          address(this), 
-          block.timestamp + 60
+            vars.underlyingBalance,
+            0,
+            path,
+            address(this),
+            block.timestamp + 60
         )[1];
 
         console.log("SM -> SWAP Amount Received: %s", vars.amountReceived);
-        console.log("SM -> ASSET Token Balance %s", IERC20(assets[0]).balanceOf(address(this)));
+        console.log(
+            "SM -> ASSET Token Balance %s",
+            IERC20(assets[0]).balanceOf(address(this))
+        );
 
-        // Approve the LendingPool contract allowance to *pull* the owed amount            
-        
-        vars.amountOwing = amounts[0].add(premiums[0]);    
+        // Approve the LendingPool contract allowance to *pull* the owed amount
+
+        vars.amountOwing = amounts[0].add(premiums[0]);
         console.log("SM--> amountOwing: %s", vars.amountOwing);
         IERC20(assets[0]).safeApprove(address(LENDING_POOL), vars.amountOwing);
 
         return true;
     }
-
 
     function myFlashLoanCall(
         address _borrower,
