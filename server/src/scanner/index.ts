@@ -39,9 +39,9 @@ export async function getBorrowdAccountsFromGraph(): Promise<accountItem[]> {
     // fetchedAccounts = 0; // using for stop
     page += 1;
 
-    // if (page === 5) {
-    //   fetchedAccounts = 0;
-    // } // just stop on page 5
+    if (page === 2) {
+      fetchedAccounts = 0;
+    } // just stop on page 5
   }
 
   return _data;

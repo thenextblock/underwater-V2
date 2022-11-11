@@ -12,8 +12,7 @@ import { startCompoundScanner } from "./accountSnapshot";
 
 // const RPC_WS = "wss://eth-mainnet.alchemyapi.io/v2/HWlk4Sy0ek094_wjLN7Ptk9qCH0wFUOl";
 const RPC_WS = process.env.RPC_WS || "";
-
-const COMPTORLLER_ADDRESS = "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b";
+const COMPTORLLER_ADDRESS = process.env.COMPTORLLER_ADDRESS || "";
 
 // Connection Keep Alive Code : https://github.com/ethers-io/ethers.js/issues/1053
 type KeepAliveParams = {
@@ -101,28 +100,34 @@ const provider = new ethers.providers.WebSocketProvider(RPC_WS);
 (async () => {
   const comptroller = Comptroller__factory.connect(COMPTORLLER_ADDRESS, provider);
   const oracleAddress = await comptroller.oracle();
-  console.log("Oracle Address : ", oracleAddress);
   const oracleInstance = new ethers.Contract(oracleAddress, newOracleAbi, provider);
+
+  // Set blockNumber at First time 
+  BLOCK_NUMBER = await provider.getBlockNumber();
 
   oracleInstance.on("PriceUpdated", async (symbolHash, anchorPrice, extraData) => {
     console.log("----------------------------------------");
     console.log("PriceUpdated %s", new Date());
     console.log(symbolHash, " | ", formatUnits(anchorPrice));
     // console.log("ExtraData : ", extraData);
-    const { blockNumber } = extraData;
-    console.log("event BlockNumber : ", blockNumber);
-    console.log("STATIC BLOCKNUMVER : ", BLOCK_NUMBER);
+    const { blockNumber: eventBlockNumber } = extraData;
+    const currentBlockNumber = await provider.getBlockNumber();
 
-    // // const blockNumber = await provider.getBlockNumber();
-    // if ((await provider.getBlockNumber()) === blockNumber) {
-    //   console.log("IN THIS BLOCK WE ALREADY HAVE AN ONE EVENT !!! ");
-    // } else {
-    //   console.log("--> () main Function: block: ", BLOCK_NUMBER);
-    //   // startCompoundScanner();
-    // }
+    console.log("Event BlockNumber: ", eventBlockNumber);
+    console.log("Current BlockNumber: ", currentBlockNumber);
+    console.log("GLOBAL BLOCK NUMBER: ", BLOCK_NUMBER);
+    console.log("currentBlockNumber === eventBlockNumber", currentBlockNumber === eventBlockNumber)
 
-    console.log("Update Block Number !!!");
-    BLOCK_NUMBER = await provider.getBlockNumber();
+    if (BLOCK_NUMBER === eventBlockNumber) {
+      console.log("IN THIS BLOCK WE ALREADY HAVE AN ONE EVENT !!! ");
+    } else {
+      console.log("--> () main Function: block: ", BLOCK_NUMBER);
+      console.log("START SCANNER !!! ")
+      startCompoundScanner();
+    }
+
+    console.log("Update Block Global Number !!!");
+    BLOCK_NUMBER = currentBlockNumber;
   });
 
   // At every 3rd minute. https://crontab.guru/#*/3_*_*_*_*
@@ -132,6 +137,6 @@ const provider = new ethers.providers.WebSocketProvider(RPC_WS);
 KEEPALIVE_QUEUE.process(async job => {
   let blockNumber = await provider.getBlockNumber();
   console.log(`I'm Keepalive ping WS connection every 3 min`);
-  // console.log(`Current BlockNumber : ", ${blockNumber}`);
-  // console.log(`---`);
+  console.log(`Current BlockNumber : ", ${blockNumber}`);
+  console.log(`---`);
 });

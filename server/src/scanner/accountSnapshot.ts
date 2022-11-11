@@ -49,10 +49,10 @@ let _markets: IMarkets = {};
 let marketMap = new Map<string, Imarket>();
 
 (async () => {
-  console.log("START COMPOUND SCANNER ...");
+  console.log("COMPOUND SCANNER ...");
   COMPOUND_QUEUE.empty();
   COMPOUND_PRICES_QUEUE.empty();
-  await startCompoundScanner();
+  // await startCompoundScanner();
 })();
 
 export async function startCompoundScanner(): Promise<Number> {
@@ -75,8 +75,6 @@ export async function startCompoundScanner(): Promise<Number> {
  */
 async function getMarkets(blockNumber: number): Promise<IMarkets> {
   cTokens = await comptroller.getAllMarkets();
-  // console.log(cTokens);
-  console.log("-----------------------");
   for (let address of cTokens) {
     COMPOUND_PRICES_QUEUE.add({
       address: address,
@@ -85,7 +83,7 @@ async function getMarkets(blockNumber: number): Promise<IMarkets> {
       underlyingToken: underlyingTokens.get(address),
     });
   }
-  // Depricated !!!
+  // Return Depricated !!!
   return _markets;
 }
 
@@ -123,6 +121,8 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number)
   if (shortfall.isZero()) {
     return false;
   }
+
+  console.log('Underwater->', account);
 
   // Get only assets Account exists in !
   // const accountAssets = await getAssetsIn(account); //
@@ -162,12 +162,10 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number)
  * Scanner
  */
 export async function startScanner(blockNumber: number) {
-  // const rows = await getMarketEnteredAccountData();
-
+  // const rows = await getMarketEnteredAccountData(); // the old way from database
   const _accounts = await getBorrowdAccountsFromGraph();
 
   _accounts.map(item => {
-    console.log(item.id);
     COMPOUND_QUEUE.add({ account: item.id, blockNumber: blockNumber });
   });
 
@@ -176,14 +174,13 @@ export async function startScanner(blockNumber: number) {
   // rows?.map((row, key) => {
   //   COMPOUND_QUEUE.add({ account: row.account, blockNumber: blockNumber });
   // });
+
 }
 
 ///////// QUEUE //////////
-COMPOUND_QUEUE.process(400, async (job, done) => {
+COMPOUND_QUEUE.process(2500, async (job, done) => {
   const { account, blockNumber } = job.data;
-  console.log(account, " | ", blockNumber);
   const status = await readAndStoreAccountSnapshot(account, blockNumber);
-  console.log("Status : ", status);
   done(null, status);
 });
 
@@ -211,9 +208,10 @@ COMPOUND_PRICES_QUEUE.process(20, async (job, done) => {
     const assetPrice = await oracle.getUnderlyingPrice(address);
 
     const underlyingToken = underlyingTokens.get(address);
-    // Using here cToken ABI, because we just need Decimals and Name
 
+    // Using here cToken ABI, because we just need Decimals and Name
     // Very Riski Part , if new tokens added !!!
+
     if (underlyingToken) {
       await storeMarket(
         blockNumber,
@@ -226,9 +224,8 @@ COMPOUND_PRICES_QUEUE.process(20, async (job, done) => {
         underlyingToken?.address
       );
     }
-  } catch (err: any) {
-    // console.log("Error : ", err);
-    console.log("Error : ");
+  } catch (err: any) {    
+    console.log("Error : ", err);
     console.log("address : ", _address);
   } finally {
     done(null);
@@ -249,7 +246,7 @@ COMPOUND_PRICES_QUEUE.on("failed", async (job, error) => {
  */
 async function queeMonitor() {
   let counter = 0;
-  setInterval(function () {
+  let int = setInterval(function () {
     COMPOUND_QUEUE.getJobCounts()
       .then(function (result) {
         console.log("\r" + "Queue status: ", result);
@@ -261,7 +258,8 @@ async function queeMonitor() {
           console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
           COMPOUND_QUEUE.empty();
           COMPOUND_PRICES_QUEUE.empty();
-          process.exit(1);
+          // process.exit(1);
+          clearInterval(int);
         }
       })
       .catch(function () {

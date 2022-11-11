@@ -28,8 +28,8 @@ export const dbSaveAccountSnapshotByBlockNumber = async (
  */
 export const storeMarketEnteredAccont = async (accountAddress: string, blockNumber: number) => {
   const sql = `
-        insert into accounts ("account", blockNumber) values ($1,$2);
-            -- ON CONFLICT (account) DO NOTHING;  
+        insert into accounts ("account", blockNumber) values ($1,$2)
+            ON CONFLICT (account) DO NOTHING;  
   `;
   const data = [accountAddress, blockNumber];
   try {
