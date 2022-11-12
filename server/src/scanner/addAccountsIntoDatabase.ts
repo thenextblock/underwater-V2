@@ -55,10 +55,10 @@ export async function startAddingBorroedwdAccounts() {
 
 ///////// QUEUE //////////
 ACCOUNTS_QUEUE.process(200, async (job, done) => {
-  const { account } = job.data;
+  const { account, blockNumber } = job.data;
   //console.log(account.id);
-  await storeMarketEnteredAccont(account.id);
-  done(null);
+  await storeMarketEnteredAccont(account, blockNumber);
+  return done(null);
 });
 
 ACCOUNTS_QUEUE.on("completed", async (job, result) => {

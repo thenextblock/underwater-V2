@@ -41,7 +41,7 @@ export const storeMarketEnteredAccont = async (accountAddress: string, blockNumb
 
 export const getMarketEnteredAccountData = async () => {
   // const sql = `SELECT * FROM accounts;`;
-  const sql = ` 
+  const sqlOld = ` 
             WITH A AS (
                 select max(blocknumber) as maxBlockNumber from accounts_info
             ), B AS (
@@ -57,6 +57,8 @@ export const getMarketEnteredAccountData = async () => {
             )
             SELECT * FROM B  WHERE health between 0.9 and 1  ORDER BY  collateral desc ;
     `;
+
+  const sql = `select * from accounts;`
 
   try {
     return (await pool.query(sql, [])).rows;

@@ -6,6 +6,8 @@ import { dbSaveAccountSnapshotByBlockNumber, getMarketEnteredAccountData } from 
 import Queue from "bull";
 
 const ACCOUNT_INFO_QUEUE = new Queue("account_info");
+const ACCOUNT_INFO_DB_QUEE = new Queue("account_info_db")
+
 const RPC_HOST = process.env.RPC_HTTP;
 const provider = new ethers.providers.JsonRpcProvider(RPC_HOST);
 const ACCOUNT_INFO_ADDRESS = "0x71BdD2FF5f6aaC9bae395aec148762349A44b6D5";
@@ -40,11 +42,17 @@ export async function startScanner(blockNumber: number) {
 
 // 100 , 200
 ///////// QUEUE //////////
-ACCOUNT_INFO_QUEUE.process(450, async (job, done) => {
+ACCOUNT_INFO_QUEUE.process(3500, async (job, done) => {
   const { account, blockNumber } = job.data;
   try {
     const { collateral, borrows } = await accountInfoContract.getLiquidity(account);
-    await dbSaveAccountSnapshotByBlockNumber(blockNumber, account, collateral.toString(), borrows.toString());
+
+    // console.log(collateral, borrows);
+    // TODO: move separate thread 
+    // await dbSaveAccountSnapshotByBlockNumber(blockNumber, account, collateral.toString(), borrows.toString());
+
+    ACCOUNT_INFO_DB_QUEE.add( { blockNumber: blockNumber, account: account,collateral: collateral.toString(), borrows: borrows.toString() } )
+
   } catch (error: any) {
     console.log("Error : ", account);
   }
@@ -58,6 +66,17 @@ ACCOUNT_INFO_QUEUE.process(450, async (job, done) => {
   done(null);
 });
 
+// TODO: Save this job in REDIS !!! 
+ACCOUNT_INFO_DB_QUEE.process(30, async( job, done ) => {
+    const { blockNumber, account, collateral , borrows  } = job.data;
+    await dbSaveAccountSnapshotByBlockNumber(blockNumber, account, collateral, borrows);
+    done(null);
+}); 
+
+ACCOUNT_INFO_DB_QUEE.on("completed", async (job, result) => {
+  job.remove();
+});
+
 ACCOUNT_INFO_QUEUE.on("completed", async (job, result) => {
   job.remove();
 });
@@ -66,6 +85,8 @@ ACCOUNT_INFO_QUEUE.on("failed", async (job, error) => {
   console.log(error.message);
   job.remove();
 });
+
+
 
 /**
  * Montor Redis Jobs

@@ -162,23 +162,22 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number)
  * Scanner
  */
 export async function startScanner(blockNumber: number) {
-  // const rows = await getMarketEnteredAccountData(); // the old way from database
-  const _accounts = await getBorrowdAccountsFromGraph();
+  const rows = await getMarketEnteredAccountData(); // the old way from database
 
-  _accounts.map(item => {
-    COMPOUND_QUEUE.add({ account: item.id, blockNumber: blockNumber });
+  console.log("Rows : ", rows?.length);
+  rows?.map((row, key) => {
+    COMPOUND_QUEUE.add({ account: row.account, blockNumber: blockNumber });
   });
 
-  // temporary commented !!!
-  // console.log("Rows : ", rows?.length);
-  // rows?.map((row, key) => {
-  //   COMPOUND_QUEUE.add({ account: row.account, blockNumber: blockNumber });
+  // const _accounts = await getBorrowdAccountsFromGraph();
+  // _accounts.map(item => {
+  //   COMPOUND_QUEUE.add({ account: item.id, blockNumber: blockNumber });
   // });
 
 }
 
 ///////// QUEUE //////////
-COMPOUND_QUEUE.process(2500, async (job, done) => {
+COMPOUND_QUEUE.process(3500, async (job, done) => {
   const { account, blockNumber } = job.data;
   const status = await readAndStoreAccountSnapshot(account, blockNumber);
   done(null, status);
