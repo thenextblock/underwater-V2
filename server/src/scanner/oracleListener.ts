@@ -54,7 +54,7 @@ const keepAlive = ({ provider, onDisconnect, expectedPongBack = 15000, checkInte
 };
 
 const startListener = async () => {
-  console.log("START LISTENER");
+  console.log("START LISTENER V: 1.0");
   const provider = new ethers.providers.WebSocketProvider(RPC_WS);
 
   keepAlive({
@@ -98,12 +98,15 @@ let BLOCK_NUMBER = 0;
 const provider = new ethers.providers.WebSocketProvider(RPC_WS);
 
 (async () => {
+  console.log("Start Oracle Listener: Price Update");
   const comptroller = Comptroller__factory.connect(COMPTORLLER_ADDRESS, provider);
   const oracleAddress = await comptroller.oracle();
   const oracleInstance = new ethers.Contract(oracleAddress, newOracleAbi, provider);
 
   // Set blockNumber at First time 
   BLOCK_NUMBER = await provider.getBlockNumber();
+
+  console.log("BLOCK_NUMBER = ", BLOCK_NUMBER);
 
   oracleInstance.on("PriceUpdated", async (symbolHash, anchorPrice, extraData) => {
     console.log("----------------------------------------");
@@ -118,16 +121,18 @@ const provider = new ethers.providers.WebSocketProvider(RPC_WS);
     console.log("GLOBAL BLOCK NUMBER: ", BLOCK_NUMBER);
     console.log("currentBlockNumber === eventBlockNumber", currentBlockNumber === eventBlockNumber)
 
-    if (BLOCK_NUMBER === eventBlockNumber) {
-      console.log("IN THIS BLOCK WE ALREADY HAVE AN ONE EVENT !!! ");
-    } else {
-      console.log("--> () main Function: block: ", BLOCK_NUMBER);
-      console.log("START SCANNER !!! ")
-      startCompoundScanner();
-    }
+    startCompoundScanner(eventBlockNumber);
+
+    // if (BLOCK_NUMBER === eventBlockNumber) {
+    //   console.log("IN THIS BLOCK WE ALREADY HAVE AN ONE EVENT !!! ");
+    // } else {
+    //   console.log("--> () main Function: block: ", BLOCK_NUMBER);
+    //   console.log("START SCANNER !!! ")
+    //   // startCompoundScanner();
+    // }
 
     console.log("Update Block Global Number !!!");
-    BLOCK_NUMBER = currentBlockNumber;
+    BLOCK_NUMBER = eventBlockNumber;
   });
 
   // At every 3rd minute. https://crontab.guru/#*/3_*_*_*_*

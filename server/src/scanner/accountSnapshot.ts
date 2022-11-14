@@ -7,7 +7,7 @@ import {
   CUNI__factory as cToken_factory,
   Oracle__factory,
 } from "./types";
-import { getFilteredAccountsFromAccountInfo, getMarketEnteredAccountData, storeAccountSnapshot, storeAccountSnapshotBulk, storeMarket } from "./db";
+import { getFilteredAccountsFromAccountInfo, storeAccountSnapshot, storeAccountSnapshotBulk, storeMarket } from "./db";
 import { underlyingTokens } from "./MarketStore";
 import { queeMonitor } from "../utils/redisHelper";
 
@@ -48,16 +48,17 @@ let marketMap = new Map<string, Imarket>();
   console.log("COMPOUND SCANNER ...");
   SCANNER_QUEUE.empty();
   SCANNER_PRICES_QUEUE.empty();
-  await startCompoundScanner(); // todo comment !!! 
+
+  // const blockNumber = await provider.getBlockNumber();
+  // await startCompoundScanner(blockNumber); // todo comment !!! 
 })();
 
-export async function startCompoundScanner(): Promise<Number> {
+export async function startCompoundScanner(blockNumber: number): Promise<Number> {
   
-  const blockNumber = await provider.getBlockNumber();
   console.log("BlockNumber : ", blockNumber);
   
   console.log("#1 ---- GET MARKET DATA ---");
-  await getMarkets(blockNumber);
+  await getMarkets(blockNumber); // No need blockNumber here 
 
   console.log("#2 ---- START GLOBAL SCANNER ---");
   await startScanner(blockNumber);
@@ -88,13 +89,13 @@ async function getMarkets(blockNumber: number): Promise<IMarkets> {
   return _markets;
 }
 
-async function getAccountLiquidity(account: string): Promise<Liquidity> {
+async function getAccountLiquidity(account: string, blockNumber: number): Promise<Liquidity> {
   let accountLiquidity: Liquidity = {
     liquidity: parseUnits("0"),
     shortfall: parseUnits("0"),
   };
   try {
-    const [, liquidity, shortfall] = await comptroller.getAccountLiquidity(account);
+    const [, liquidity, shortfall] = await comptroller.getAccountLiquidity(account, { blockTag: blockNumber });
     return (accountLiquidity = {
       liquidity: liquidity,
       shortfall: shortfall,
@@ -106,9 +107,9 @@ async function getAccountLiquidity(account: string): Promise<Liquidity> {
   }
 }
 
-export async function getAssetsIn(account: string): Promise<string[]> {
+export async function getAssetsIn(account: string, blockNumber: number): Promise<string[]> {
   try {
-    return await comptroller.getAssetsIn(account);
+    return await comptroller.getAssetsIn(account, { blockTag: blockNumber });
   } catch (err) {
     return [];
   }
@@ -120,7 +121,7 @@ let values: any = [];
 // Get Accopunt Snapshot
 async function readAndStoreAccountSnapshot(account: string, blockNumber: number, fullScan: boolean): Promise<any> {
   
-  const { liquidity, shortfall } = await getAccountLiquidity(account);
+  const { liquidity, shortfall } = await getAccountLiquidity(account, blockNumber);
 
   // Reduce Addtional calls get only underwater Accounts
   // If fullscan is a false and shrotfall > 0
@@ -133,7 +134,7 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number,
   console.log('Underwater->', account);
 
   // Get only assets Account exists in !
-  const accountAssets = await getAssetsIn(account); //
+  const accountAssets = await getAssetsIn(account, blockNumber); //
 
   let _values = [];
   
@@ -141,38 +142,37 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number,
     try {
 
       const cToken = cToken_factory.connect(cTokenAddress, provider); // TODO: optimize cToken Initialisation
-      const [error, cTokenBalance, borrowBalance, exchangeRateMantissa] = await cToken.getAccountSnapshot(account);
+      const [error, cTokenBalance, borrowBalance, exchangeRateMantissa] = await cToken.getAccountSnapshot(account, { blockTag: blockNumber });
 
       // insert only non zero balances !
       if (!cTokenBalance.isZero() || !borrowBalance.isZero()) {
 
-        values.push([
-              blockNumber, 
-              account, 
-              error.toNumber(),
-              cTokenAddress,
-              cTokenBalance.toString(),
-              borrowBalance.toString(),
-              exchangeRateMantissa.toString(),
-              liquidity.toString(),
-              shortfall.toString()
-        ])
+        // values.push([
+        //       blockNumber, 
+        //       account, 
+        //       error.toNumber(),
+        //       cTokenAddress,
+        //       cTokenBalance.toString(),
+        //       borrowBalance.toString(),
+        //       exchangeRateMantissa.toString(),
+        //       liquidity.toString(),
+        //       shortfall.toString()
+        // ])
+
+        SCNANNER_DB_QUEE.add({ 
+            blockNumber: blockNumber, 
+            account: account, 
+            error: error.toNumber(),
+            cToken: cTokenAddress,
+            cTokenBalane: cTokenBalance.toString(),
+            borrowBalance: borrowBalance.toString(),
+            exchangeRateMantissa: exchangeRateMantissa.toString(),
+            liquidity: liquidity.toString(),
+            shortfall: shortfall.toString()
+        });
+
       }
-
-
-      // SCNANNER_DB_QUEE.add({ 
-      //     blockNumber: blockNumber, 
-      //     account: account, 
-      //     error: error.toNumber(),
-      //     cToken: cTokenAddress,
-      //     cTokenBalane: cTokenBalance.toString(),
-      //     borrowBalance: borrowBalance.toString(),
-      //     exchangeRateMantissa: exchangeRateMantissa.toString(),
-      //     liquidity: liquidity.toString(),
-      //     shortfall: shortfall.toString()
-      // });
-      // }
-
+    
 
     } catch (error) {
       console.log("Error On Market :  ", cTokenAddress); // cTokenAddress
@@ -183,9 +183,9 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number,
   }
 
 
-  if(values.length != 0) {
-    SCNANNER_DB_QUEE.add({ values: values });
-  }
+  // if(values.length != 0) {
+  //   SCNANNER_DB_QUEE.add({ values: values });
+  // }
   
   return values;
 }
@@ -193,31 +193,31 @@ async function readAndStoreAccountSnapshot(account: string, blockNumber: number,
 
 SCNANNER_DB_QUEE.process(100, async (job, done) => { 
 
-  await storeAccountSnapshotBulk(job.data.values);
+  // await storeAccountSnapshotBulk(job.data.values);
 
-  // const {  
-  //         blockNumber, 
-  //         account, 
-  //         error, 
-  //         cToken, 
-  //         cTokenBalane, 
-  //         borrowBalance,
-  //         exchangeRateMantissa,
-  //         liquidity,
-  //         shortfall
-  //     } = job.data;
+  const {  
+          blockNumber, 
+          account, 
+          error, 
+          cToken, 
+          cTokenBalane, 
+          borrowBalance,
+          exchangeRateMantissa,
+          liquidity,
+          shortfall
+      } = job.data;
 
-  //  await storeAccountSnapshot(
-  //         blockNumber,
-  //         account,
-  //         error,
-  //         cToken,
-  //         cTokenBalane,
-  //         borrowBalance,
-  //         exchangeRateMantissa,
-  //         liquidity,
-  //         shortfall
-  //   );
+   await storeAccountSnapshot(
+          blockNumber,
+          account,
+          error,
+          cToken,
+          cTokenBalane,
+          borrowBalance,
+          exchangeRateMantissa,
+          liquidity,
+          shortfall
+    );
 
   done(null)
 })
@@ -277,7 +277,7 @@ SCANNER_PRICES_QUEUE.process(20, async (job, done) => {
 
     const marketSymbol = await cToken.symbol();
     const collateralFactor = await (await comptroller.markets(address)).collateralFactorMantissa;
-    const assetPrice = await oracle.getUnderlyingPrice(address);
+    const assetPrice = await oracle.getUnderlyingPrice(address, { blockTag: blockNumber });
 
     const underlyingToken = underlyingTokens.get(address);
     

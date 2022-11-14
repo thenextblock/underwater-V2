@@ -72,7 +72,7 @@ export async function startScanner(blockNumber: number) {
 ACCOUNT_INFO_QUEUE.process(4500, async (job, done) => {
   const { account, blockNumber } = job.data;
   try {
-    const { collateral, borrows } = await accountInfoContract.getLiquidity(account);
+    const { collateral, borrows } = await accountInfoContract.getLiquidity(account, {blockTag: blockNumber});
 
     values.push( [blockNumber, account, formatUnits(collateral, 18) , formatUnits(borrows, 18 )])
 

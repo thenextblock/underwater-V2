@@ -39,9 +39,9 @@ Run Oracle Listerener
 ```bash
 
     buld: tsc -w
-    pm2 start node  ./build/scanner/pastEvents.js
-    pm2 start node  ./build/scanner/accountInfo.js
-    pm2 start node ./build/scanner/oracleListener.js
+    pm2 start  ./build/scanner/pastEvents.js
+    pm2 start  ./build/scanner/accountInfo.js
+    pm2 start  ./build/scanner/oracleListener.js
 
 ```
 
