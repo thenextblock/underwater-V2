@@ -6,7 +6,7 @@ import newOracleAbi from "./abi/oracle.json";
 ethers.utils.Logger.setLogLevel(ethers.utils.Logger.levels.OFF); // turn off warnings
 
 import Queue from "bull";
-const KEEPALIVE_QUEUE = new Queue("keepalive");
+const KEEPALIVE_QUEUE = new Queue("oracle:keepalive");
 
 import { startCompoundScanner } from "./accountSnapshot";
 

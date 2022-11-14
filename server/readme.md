@@ -1,4 +1,50 @@
-### UNDERWATER
+## UNDERWATER
+
+### Services: (scheduler jobs)
+
+- Scheduler job runs under bull scheduler (no cronjob)
+
+#### - ACCOUNTS FETCHER (JOB)
+
+- 1. /scanner/pastEvents.ts
+- It fetchs all accounts : marketEntered() event logs 
+- We also getting latest blockNumber from the database 
+- SCEDULER:  every 2 hours: 
+- Database Table: accounts
+
+#### - ACCOUNT IFO (JOB)
+
+- /scanner/accountInfo.ts
+- It fetchs all accounts from accounts and calls accountinfo agregator smartcontract for each account address,
+- loads : collateral and borrow numebrs for each accounts 
+- SCHEDULER: every 1 hour. 
+- Database Table: account_info 
+
+
+#### -- ACCOUNT SNAPSHOT (Depends on oracleListener.ts)
+-- /scanner/accountSnapshot.ts
+
+
+#### -- ORACLE ELISTENER 
+- ./scanner/oracleListener.ts
+- ws connector listens priceUpdate Events and for each events and 
+- executes ACCOUNT SNAPSHOT (accounsSnapshot.ts) 
+
+
+### Setup Bot 
+
+Run Schedulers separatelly:  pastEvents & accountInfo 
+Run Oracle Listerener 
+
+```bash
+
+    buld: tsc -w
+    pm2 start node  ./build/scanner/pastEvents.js
+    pm2 start node  ./build/scanner/accountInfo.js
+    pm2 start node ./build/scanner/oracleListener.js
+
+```
+
 
 ## Scan Compound.finance protocol and get Underwater Accounts For liquidation
 
@@ -8,20 +54,14 @@
 
 ### steps
 
-1. Run docker container : See file ./docer/docker-compose.yaml whic includes Postgres and redis instance
+1. Run docker container : See file ./docer/docker-compose.yaml Postgres and redis instance
 
 ```shell
     cd ./docker
     docker-compose up
 ```
 
-2. Create Table ./docs/schema.sql
 
-3. Run script: accountSnapshot.ts
-
-```
-    ts-node ./src/accountSnapshot.ts
-```
 
 ```shell
     // Run ganache in fork mode

@@ -1,9 +1,45 @@
 import { Pool, Client } from "pg";
 import config from "../config";
+import format from "pg-format";
 
 const pool = new Pool(config.db);
 
-// insert into accounts_info (blockNumber, collateral, borrows) values ($1,$2,$3);
+
+// Get Max Block Number from accounts 
+export async function getMaxBlockNumberFromAccouns(): Promise<any> {
+  let sql = ` select max(blocknumber) as blockNumber from accounts; `;
+   try {
+    let result = await pool.query(sql);
+    let { blocknumber } = result.rows[0];
+    return blocknumber;
+  } catch (err) {
+    console.log(err);
+    return 0;
+  }
+
+}
+
+
+export const dbSaveAccountSnapshotByBlockNumberBulk = async (values: any ) => {
+
+  //-- Check aditional values 
+  if(values.length === 0) return;
+
+  const sql = format(`
+        insert into accounts_info ( 
+                blockNumber, 
+                account,  
+                collateral, 
+                borrows
+            ) values %L; `, values);
+
+  try {
+    await pool.query(sql);
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 
 export const dbSaveAccountSnapshotByBlockNumber = async (
   blockNumber: number,
@@ -22,6 +58,7 @@ export const dbSaveAccountSnapshotByBlockNumber = async (
   }
 };
 
+
 /**
  * Store MarketEndtered Account into database
  * @param Accont Address
@@ -39,26 +76,51 @@ export const storeMarketEnteredAccont = async (accountAddress: string, blockNumb
   }
 };
 
-export const getMarketEnteredAccountData = async () => {
-  // const sql = `SELECT * FROM accounts;`;
-  const sqlOld = ` 
-            WITH A AS (
-                select max(blocknumber) as maxBlockNumber from accounts_info
-            ), B AS (
-                SELECT
-                      blocknumber,
-                      account,
-                      collateral/ pow(10,18) as collateral,
-                      borrows/ pow(10,18) as borrows,
-                        (collateral/borrows) AS health
-                  FROM accounts_info
-                            WHERE collateral > 0 AND borrows > 0
-                                AND blocknumber = (select maxBlockNumber from A)
-            )
-            SELECT * FROM B  WHERE health between 0.9 and 1  ORDER BY  collateral desc ;
-    `;
+export const getUnderWaterAccounts = async () => {
 
-  const sql = `select * from accounts;`
+  const sql = ` select distinct account from account_snapshot `
+
+  try {
+    return (await pool.query(sql, [])).rows;
+  } catch (err) {
+    console.log(err);
+  }
+
+}
+
+
+/**
+ * Get Market Account infos: Filtered with  special condition
+ * collateral > 500
+ * health factor: between 0.7 and 1.8;
+ * @returns 
+ * 
+ */
+
+export const getFilteredAccountsFromAccountInfo = async () => {
+
+    const sql = `
+          WITH A AS (
+            SELECT *, collateral/borrows as health FROM accounts_info WHERE
+              blocknumber = (SELECT max(blocknumber) FROM accounts_info)
+                  AND (borrows != 0)
+            )
+              SELECT blocknumber, account FROM A
+                               WHERE collateral > 500
+                                   AND
+                                        health between 0.7 and 1.8; `
+
+      try {
+        return (await pool.query(sql, [])).rows;
+      } catch (err) {
+        console.log(err);
+      }                                 
+}
+
+
+export const getMarketEnteredAccountData = async () => {
+
+  const sql = ` select * from accounts `
 
   try {
     return (await pool.query(sql, [])).rows;
@@ -123,6 +185,32 @@ export const storeMarket = async (
     console.log(err);
   }
 };
+
+
+
+
+
+export const storeAccountSnapshotBulk = async(values: any) => {
+
+  let sql = format(`INSERT INTO account_snapshot ( 
+                        blockNumber, 
+                        account, 
+                        error, 
+                        market,
+                        cTokenBalance, 
+                        borrowBalance, 
+                        exchangeRateMantissa,
+                        liquidity,
+                        shortfall
+              ) VALUES %L `, values);
+
+  try {
+    await pool.query(sql);
+  } catch (err) {
+    console.log(err);
+  }
+}
+
 
 /**
  *
