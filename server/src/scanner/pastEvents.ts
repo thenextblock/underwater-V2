@@ -31,11 +31,10 @@ export async function getMarketEnteredAccounts() {
   console.log("latest Block Number: ", latestBlockNumberFromDb);
 
   const comptroller = Comptroller__factory.connect(COMPTORLLER_ADDRESS, provider);
-  let eventFilter =  comptroller.filters.MarketEntered();
+  let eventFilter = comptroller.filters.MarketEntered();
 
-  console.log(typeof latestBlockNumberFromDb)
   /*
-    // This params we use wne fetching from the scratch ...
+    // This params we use only w fetching from the scratch ...
     let startBlock = 15953102;
     let paging = 2000000;
     let page = 0;
@@ -49,7 +48,7 @@ export async function getMarketEnteredAccounts() {
 
   let events = await comptroller.queryFilter(
     eventFilter,
-    parseInt(latestBlockNumberFromDb), // the name is confusing , this is start Block Number
+    parseInt(latestBlockNumberFromDb) // the name is confusing , this is start Block Number
   );
 
   console.log(`All Events Count: = ${events.length} since ${latestBlockNumberFromDb}`);
@@ -58,7 +57,6 @@ export async function getMarketEnteredAccounts() {
     let { cToken, account } = event.args;
     ACCOUNT_QUEUE.add({ id: account, blockNumber: event.blockNumber });
   });
-
 }
 
 ACCOUNT_QUEUE.process(5, async (job, done) => {
@@ -71,26 +69,26 @@ ACCOUNT_QUEUE.on("completed", async (job, result) => {
   job.remove();
 });
 
-async function queeMonitor() {
-  let counter = 0;
-  const start = new Date().getTime();
-  let int = setInterval(function () {
-    ACCOUNT_QUEUE.getJobCounts()
-      .then(function (result) {
-        console.log("\r" + "Queue status: ", result);
-        console.log("\r" + "Counter: ", counter, "Running Time : ", (counter * 10) / 60, "Minutes");
-        counter++;
+// async function queeMonitor() {
+//   let counter = 0;
+//   const start = new Date().getTime();
+//   let int = setInterval(function () {
+//     ACCOUNT_QUEUE.getJobCounts()
+//       .then(function (result) {
+//         console.log("\r" + "Queue status: ", result);
+//         console.log("\r" + "Counter: ", counter, "Running Time : ", (counter * 10) / 60, "Minutes");
+//         counter++;
 
-        console.log("----------");
-        if (result.active === 0 && counter > 2) {
-          console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
-          const elapsed = new Date().getTime() - start;
-          console.log(`--> Get Pairs Time:  ${elapsed / 1000}s`);
-          clearInterval(int);
-        }
-      })
-      .catch(function () {
-        console.log("Error in finding out the status of the queue");
-      });
-  }, 5000);
-}
+//         console.log("----------");
+//         if (result.active === 0 && counter > 2) {
+//           console.log("Process Finished !!! FLUSH REDIS DATABASE !!!");
+//           const elapsed = new Date().getTime() - start;
+//           console.log(`--> Get Pairs Time:  ${elapsed / 1000}s`);
+//           clearInterval(int);
+//         }
+//       })
+//       .catch(function () {
+//         console.log("Error in finding out the status of the queue");
+//       });
+//   }, 5000);
+// }
