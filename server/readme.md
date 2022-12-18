@@ -61,7 +61,7 @@ Run Oracle Listerener
 
 ```shell
     // Run ganache in fork mode
-    ganache-cli -f http://159.69.75.162:8545 -i 1  --unlock=0x3c6809319201b978d821190ba03fa19a3523bd96
+    ganache-cli -f http://<rpc_ip>:8545 -i 1  --unlock=0x3c6809319201b978d821190ba03fa19a3523bd96
 
 ```
 
@@ -72,15 +72,6 @@ Run Oracle Listerener
 ```bash
 
     curl --location -g --request POST 'http://localhost:8545' \
-        --header 'Content-Type: application/json' \
-        --data-raw '{
-            "jsonrpc":"2.0",
-            "method":"eth_blockNumber",
-            "params":[],
-            "id":1
-        }'
-
-curl --location -g --request POST 'http://65.108.206.172:8545' \
         --header 'Content-Type: application/json' \
         --data-raw '{
             "jsonrpc":"2.0",
