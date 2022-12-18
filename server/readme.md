@@ -80,4 +80,13 @@ Run Oracle Listerener
             "id":1
         }'
 
+curl --location -g --request POST 'http://65.108.206.172:8545' \
+        --header 'Content-Type: application/json' \
+        --data-raw '{
+            "jsonrpc":"2.0",
+            "method":"eth_blockNumber",
+            "params":[],
+            "id":1
+        }'
+
 ```
